@@ -3,231 +3,299 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Netto-Wirkzeit — Peak-Stunden statt Kalenderzeit</title>
-  <meta name="description" content="Rechnet verbleibende Peak-Stunden, gewichtete Wirkzeit und den Zinseszins einer Stunde heute. Kalender lügt." />
+  <title>Netto-Wirkzeit — Peak hours, not calendar time</title>
+  <meta name="description" content="Remaining peak hours to a target age, energy-weighted, plus the compounded price of one hour today." />
   <meta name="author" content="Roman Paly" />
-  <meta name="version" content="1.0.0" />
-  <meta name="date" content="2026-09-28" />
+  <meta name="version" content="1.1.0" />
   <style>
     :root {
-      --bg: #090a0c;
-      --card: #13151a;
-      --line: #2c3139;
-      --text: #eceef1;
-      --muted: #8d949e;
-      --accent: #e0b03a;
-      --good: #3dd68c;
-      --bad: #ef6a6a;
+      --bg:#090a0c;--card:#13151a;--line:#2c3139;--text:#eceef1;--muted:#8d949e;
+      --accent:#e0b03a;--good:#3dd68c;--bad:#ef6a6a;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.45;
-    }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 72px; }
-    header { margin-bottom: 22px; }
-    h1 { font-size: 30px; letter-spacing: -0.04em; margin: 0 0 6px; }
-    .sub { color: var(--muted); max-width: 640px; }
-    .meta { font-size: 12px; color: var(--muted); margin-top: 10px; }
-    .grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 16px; }
-    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 18px;
-    }
-    label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
-    input {
-      width: 100%;
-      background: #0c0e12;
-      border: 1px solid var(--line);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 16px;
-    }
-    input:focus { outline: 1px solid var(--accent); }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 12px 14px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .go { background: var(--accent); color: #111; }
-    .ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
-    .kpi { font-size: 36px; font-weight: 750; letter-spacing: -0.04em; }
-    .kpi small { display: block; font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-top: 4px; }
-    .hit { color: var(--good); }
-    .warn { color: var(--bad); }
-    .note { color: var(--muted); font-size: 13px; margin-top: 12px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
-    td { padding: 8px 0; border-bottom: 1px solid var(--line); }
-    td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-    footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
-    .err { color: var(--bad); font-size: 13px; min-height: 18px; margin-top: 8px; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+    .wrap{max-width:1040px;margin:0 auto;padding:24px 16px 72px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    h1{font-size:30px;letter-spacing:-.04em;margin:0 0 6px}
+    .sub{color:var(--muted);max-width:720px}
+    .meta{font-size:12px;color:var(--muted);margin-top:10px}
+    .lang{display:flex;gap:6px;flex-shrink:0}
+    .lang button{background:#0c0e12;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+    .lang button.on{border-color:var(--accent);color:var(--accent)}
+    .grid{display:grid;grid-template-columns:1.05fr 1fr;gap:16px}
+    @media(max-width:860px){.grid{grid-template-columns:1fr}.top{flex-direction:column}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+    label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+    input{width:100%;background:#0c0e12;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px 12px;font-size:16px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+    .presets button{background:#0c0e12;color:var(--text);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+    button.go,button.ghost{border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-size:14px;cursor:pointer}
+    .go{background:var(--accent);color:#111}
+    .ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+    .kpi{font-size:34px;font-weight:750;letter-spacing:-.04em}
+    .hit{color:var(--good)} .warn{color:var(--bad)}
+    .note{color:var(--muted);font-size:13px;margin-top:12px}
+    .ask,.guard{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+    .guard{border-color:#5a3030;color:#efb4b4}
+    table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+    td{padding:8px 0;border-bottom:1px solid var(--line)}
+    td:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}
+    .pitch{color:var(--text);font-size:14px;margin:8px 0 0;max-width:720px}
+    footer{margin-top:28px;color:var(--muted);font-size:12px}
+    .err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+    .bar{display:flex;height:16px;border-radius:99px;overflow:hidden;margin:10px 0 8px;background:#0c0e12}
+    .bar span{display:block;height:100%}
+    .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+    .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+    .how{margin-top:16px}
+    .how h2{font-size:16px;margin:0 0 10px}
+    .how ol{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
+    .how li{margin:0 0 8px}
+    .how strong{color:var(--text);font-weight:650}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <header>
-      <h1>Netto-Wirkzeit</h1>
-      <p class="sub">Kalenderzeit lügt. Dieser Rechner gibt Peak-Stunden bis zum Zielalter, gewichtet nach Energie, plus den Preis einer Stunde heute — verzinst nach vorne.</p>
-      <p class="meta">v1.0.0 · 2026-09-28 · © Roman Paly · All rights reserved · First public build</p>
+    <header class="top">
+      <div>
+        <h1>Netto-Wirkzeit</h1>
+        <p class="sub" id="t-sub"></p>
+        <p class="pitch" id="t-pitch"></p>
+        <p class="meta">v1.1.0 · 2026-09-29 · first public v1.0.0 on 2026-09-28 · © Roman Paly</p>
+      </div>
+      <div class="lang">
+        <button type="button" id="btn-de" onclick="setLang('de')">DE</button>
+        <button type="button" id="btn-en" onclick="setLang('en')">EN</button>
+      </div>
     </header>
     <div class="grid">
       <section class="card">
-        <div class="row">
-          <div>
-            <label for="age">Alter</label>
-            <input id="age" type="number" min="10" max="100" step="1" value="40">
-          </div>
-          <div>
-            <label for="target">Zielalter</label>
-            <input id="target" type="number" min="20" max="120" step="1" value="80">
-          </div>
+        <div class="presets">
+          <button type="button" onclick="preset(30)" id="p30"></button>
+          <button type="button" onclick="preset(40)" id="p40"></button>
+          <button type="button" onclick="preset(50)" id="p50"></button>
         </div>
         <div class="row">
-          <div>
-            <label for="sleep">Schlaf h/Tag</label>
-            <input id="sleep" type="number" min="0" max="16" step="0.5" value="8">
-          </div>
-          <div>
-            <label for="duty">Pflicht h/Tag</label>
-            <input id="duty" type="number" min="0" max="20" step="0.5" value="10">
-          </div>
+          <div><label for="age" id="l-age"></label><input id="age" type="number" min="10" max="100" step="1" value="40"></div>
+          <div><label for="target" id="l-target"></label><input id="target" type="number" min="20" max="120" step="1" value="80"></div>
         </div>
         <div class="row">
-          <div>
-            <label for="distract">Ablenkung h/Tag</label>
-            <input id="distract" type="number" min="0" max="16" step="0.25" value="2">
-          </div>
-          <div>
-            <label for="peak">Peak-Stunden/Tag</label>
-            <input id="peak" type="number" min="0" max="12" step="0.25" value="3">
-          </div>
+          <div><label for="sleep" id="l-sleep"></label><input id="sleep" type="number" min="0" max="16" step="0.5" value="8"></div>
+          <div><label for="duty" id="l-duty"></label><input id="duty" type="number" min="0" max="20" step="0.5" value="10"></div>
         </div>
         <div class="row">
-          <div>
-            <label for="mult">Peak-Multiplikator</label>
-            <input id="mult" type="number" min="1" max="5" step="0.1" value="2.5">
-          </div>
-          <div>
-            <label for="rate">Zeit-Hebel % / Jahr</label>
-            <input id="rate" type="number" min="0" max="30" step="0.5" value="8">
-          </div>
+          <div><label for="distract" id="l-distract"></label><input id="distract" type="number" min="0" max="16" step="0.25" value="2"></div>
+          <div><label for="peak" id="l-peak"></label><input id="peak" type="number" min="0" max="12" step="0.25" value="3"></div>
+        </div>
+        <div class="row">
+          <div><label for="pfrom" id="l-pfrom"></label><input id="pfrom" type="time" value="09:00"></div>
+          <div><label for="pto" id="l-pto"></label><input id="pto" type="time" value="12:00"></div>
+        </div>
+        <div class="row">
+          <div><label for="mult" id="l-mult"></label><input id="mult" type="number" min="1" max="5" step="0.1" value="2.5"></div>
+          <div><label for="rate" id="l-rate"></label><input id="rate" type="number" min="0" max="30" step="0.5" value="8"></div>
         </div>
         <p class="err" id="err"></p>
         <div class="actions">
-          <button class="go" type="button" onclick="calc()">Berechnen</button>
-          <button class="ghost" type="button" onclick="copyResult()">Ergebnis kopieren</button>
+          <button class="go" type="button" onclick="calc()" id="b-go"></button>
+          <button class="ghost" type="button" onclick="copyResult()" id="b-copy"></button>
         </div>
-        <p class="note">Pflicht = Job, Weg, Haushalt. Hebel = wie stark eine Peak-Stunde später Stunden spart. Keine Prognose, keine Medizin.</p>
+        <p class="note" id="t-hint"></p>
       </section>
       <section class="card" id="out"></section>
     </div>
-    <footer>
-      Netto-Wirkzeit is a personal time-allocation model by Roman Paly, first published 2026-09-28.
-      Source and wording © Roman Paly. Idea published to establish prior art.
-      Local only. No tracking. No account. No data leaves this file.
-    </footer>
+    <section class="card how">
+      <h2 id="h-how"></h2>
+      <ol id="how-list"></ol>
+    </section>
+    <footer id="t-foot"></footer>
   </div>
   <script>
     const $ = id => document.getElementById(id);
-    const fmt = n => Math.round(n).toLocaleString("de-CH");
-    const f1 = n => n.toLocaleString("de-CH", { maximumFractionDigits: 1 });
+    const KEYS = ["age","target","sleep","duty","distract","peak","pfrom","pto","mult","rate"];
+    let lang = "de";
     let lastText = "";
-    function calc() {
-      const age = +$("age").value;
-      const target = +$("target").value;
-      const sleep = +$("sleep").value;
-      const duty = +$("duty").value;
-      const distract = +$("distract").value;
-      const peakH = +$("peak").value;
-      const mult = +$("mult").value;
-      const ratePct = +$("rate").value;
-      const err = $("err");
-      err.textContent = "";
-      if ([age, target, sleep, duty, distract, peakH, mult, ratePct].some(v => Number.isNaN(v))) {
-        err.textContent = "Alle Felder brauchen Zahlen.";
-        return;
+    const T = {
+      de: {
+        sub:"Kalenderzeit lügt. Peak-Stunden bis zum Zielalter, gewichtet nach Energie, plus den Preis einer Stunde heute — verzinst nach vorne.",
+        pitch:"Für Leute, die Zeit als Kapital behandeln. Keine App für alle.",
+        age:"Alter", target:"Zielalter", sleep:"Schlaf h/Tag", duty:"Pflicht h/Tag",
+        distract:"Ablenkung h/Tag", peak:"Peak-Stunden/Tag", pfrom:"Peak von", pto:"Peak bis",
+        mult:"Peak-Multiplikator", rate:"Zeit-Hebel % / Jahr",
+        go:"Berechnen", copy:"Ergebnis kopieren",
+        p30:"30 Jahre", p40:"40 Jahre", p50:"50 Jahre",
+        hint:"2,5 so lassen: eine klare Stunde zählt wie zweieinhalb müde Stunden. 8 so lassen: wenn du eine klare Stunde heute nutzt, um etwas so zu richten, dass es nächstes Jahr weniger Zeit braucht, kommt dieser Nutzen jedes Jahr wieder — der Rechner lässt ihn um 8 von 100 pro Jahr wachsen. Das ist eine gemeinsame Annahme, keine Bank und kein Versprechen. Wer 2,5 oder 8 ohne Grund dreht, vergleicht hinterher Äpfel mit Birnen.",
+        how:"So füllt man das aus",
+        howL:[
+          "Schreib dein Alter hin. Daneben das Alter, bis zu dem die Stunden gezählt werden sollen. Viele nehmen 80. Das heisst nicht, dass du 80 wirst. Es ist nur die Zahl, bei der die Rechnung aufhört.",
+          "Schlaf: wie viele Stunden liegst du im Bett. Pflicht: Arbeit, der Weg dorthin, Küche, Kinder, Haus. Stunden, die einfach passieren müssen.",
+          "Ablenkung: Handy, Fernsehen, leeres Sitzen. Stunden, nach denen nichts Besseres da ist als vorher.",
+          "Peak-Stunden: die wenigen Stunden am Tag, in denen der Kopf klar ist und etwas Wichtiges gelingt. Bei den meisten sind das zwei, drei, höchstens vier.",
+          "Peak von und bis: um wie viel Uhr diese klaren Stunden sind. Zum Beispiel von 9 Uhr bis 12 Uhr. Nicht um Mitternacht, wenn du müde bist.",
+          "Feld 2,5 so lassen. Es sagt: eine klare Stunde ist mehr wert als eine müde. Genau: so viel wie zweieinhalb müde Stunden. Nicht gemessen. Eine mittlere Annahme, damit alle gleich rechnen.",
+          "Feld 8 so lassen. Beispiel: du räumst heute in einer klaren Stunde den Schrank so, dass du nächstes Jahr schneller findest. Dieser Gewinn kommt jedes Jahr wieder. 8 heisst: der Rechner lässt diesen Gewinn jedes Jahr um 8 von 100 wachsen. Kein Sparbuch. Kein Arzt. Nur damit eine Stunde heute und eine Stunde in zehn Jahren vergleichbar sind.",
+          "Die grosse grüne Zahl: so viele klare Stunden hast du ungefähr noch bis zu dem Alter oben.",
+          "Die Tabelle daneben: was passiert, wenn du jeden Tag eine Stunde weniger am Handy hängst und sie für etwas Klares nimmst.",
+          "Ganz unten steht eine Frage: welche eine Stunde diese Woche zu schade ist für das, was du gerade damit tust. Die Frage ist der Sinn des Rechners."
+        ],
+        foot:"Netto-Wirkzeit · Roman Paly · Erstveröffentlichung 2026-09-28 · nettowirkzeit.com · Kein Tracking. Kein Account.",
+        errNum:"Alle Felder brauchen Zahlen.", errAge:"Zielalter muss über dem Alter liegen.",
+        err24:"Schlaf + Pflicht + Ablenkung darf 24h nicht überschreiten.",
+        errPeak:"Peak-Stunden können nicht über der Restzeit liegen.",
+        copied:"Ergebnis kopiert.", blocked:"Kopieren blockiert.",
+        peakUntil:t=>`Peak-Stunden bis ${t}`, weighted:m=>`Gewichtete Wirkstunden (Peak × ${m})`,
+        years:"Jahre übrig", cal:"Kalenderstunden", awake:"Wachstunden", share:"Peak-Anteil der Wachstunden",
+        wshort:"Gewichtete Wirkstunden", mismatch:(w,p)=>`Fenster ${w} h, Peak-Ansatz ${p} h — die Uhrzeiten und die Stundenzahl müssen zusammenpassen.`,
+        window:"Peak-Fenster", usable:"Nutzbar / Tag", split:"davon Peak / tot-nutzbar", net:"Netto-Stunden gesamt",
+        now:"Jetzt", alt:"Ablenkung −1 h/Tag",
+        onePeak:"1 Peak-Stunde heute → später", oneDead:"1 tote Stunde heute → später",
+        scroll:"Ablenkung/Jahr, verzinst", back:"Peak-Äquivalent zurück",
+        guard:(a,b)=>`Pflicht darf nicht ins Fenster ${a}–${b}. Meetings gehören in tote Stunden.`,
+        line:(p,t,a,b,c)=>`Noch ${p} Peak-Stunden bis ${t}. 1 Peak-Stunde heute (${a}–${b}) kostet später ${c} Wirkstunden.`,
+        ask:(a,b)=>`Welche eine Stunde im Fenster ${a}–${b} ist diese Woche zu teuer für das, was du damit tust?`,
+        sleepL:"Schlaf", dutyL:"Pflicht", distL:"Ablenkung", peakL:"Peak", restL:"Rest"
+      },
+      en: {
+        sub:"Calendar time lies. Peak hours to a target age, energy-weighted, plus the compounded price of one hour today.",
+        pitch:"For people who treat time as capital. Not an app for everyone.",
+        age:"Age", target:"Target age", sleep:"Sleep h/day", duty:"Duty h/day",
+        distract:"Distraction h/day", peak:"Peak hours/day", pfrom:"Peak from", pto:"Peak to",
+        mult:"Peak multiplier", rate:"Time lever % / year",
+        go:"Calculate", copy:"Copy result",
+        p30:"Age 30", p40:"Age 40", p50:"Age 50",
+        hint:"Leave 2.5: a clear hour counts as two and a half tired hours. Leave 8: if you use a clear hour today to set something up so it takes less time next year, that gain returns every year — the calculator lets it grow by 8 in 100 each year. A shared assumption, not a bank, not a promise. Change 2.5 or 8 without a reason and you compare apples to oranges.",
+        how:"How to fill this in",
+        howL:[
+          "Write your age. Next to it, the age to count to. Many use 80. That does not mean you will live to 80. It is only where the sum stops.",
+          "Sleep: hours in bed. Duty: work, the way there, kitchen, children, house. Hours that have to happen.",
+          "Distraction: phone, television, sitting that leaves nothing better than before.",
+          "Peak hours: the few hours when the head is clear and something that matters gets done. For most people two, three, at most four.",
+          "Peak from and to: the clock times of those clear hours. For example 9 to 12. Not midnight, when you are tired.",
+          "Leave 2.5. It means a clear hour is worth more than a tired one: two and a half tired hours. Not measured. A middle guess so everyone calculates the same way.",
+          "Leave 8. Example: today you use a clear hour to sort a cupboard so next year you find things faster. That gain comes back every year. 8 means the calculator lets that gain grow by 8 in 100 each year. Not a savings book. Not a doctor. Only so an hour today and an hour in ten years can be compared.",
+          "The big green number: roughly how many clear hours you have left until the age above.",
+          "The table beside it: what happens if every day you take one hour off the phone and use it while clear.",
+          "At the bottom is a question: which one hour this week is too good for what you are doing with it. That question is the point of the calculator."
+        ],
+        foot:"Netto-Wirkzeit · Roman Paly · first published 2026-09-28 · nettowirkzeit.com · No tracking. No account.",
+        errNum:"Every field needs a number.", errAge:"Target age must be above age.",
+        err24:"Sleep + duty + distraction cannot exceed 24h.",
+        errPeak:"Peak hours cannot exceed leftover time.",
+        copied:"Copied.", blocked:"Copy blocked.",
+        peakUntil:t=>`Peak hours to ${t}`, weighted:m=>`Weighted action hours (peak × ${m})`,
+        years:"Years left", cal:"Calendar hours", awake:"Waking hours", share:"Peak share of waking hours",
+        wshort:"Weighted action hours", mismatch:(w,p)=>`Window ${w} h vs peak input ${p} h — clock span and hour count should match.`,
+        window:"Peak window", usable:"Usable / day", split:"of which peak / dead-usable", net:"Net hours total",
+        now:"Now", alt:"Distraction −1 h/day",
+        onePeak:"1 peak hour today → later", oneDead:"1 dead hour today → later",
+        scroll:"Distraction/year, compounded", back:"peak-equivalent recovered",
+        guard:(a,b)=>`Duty must not enter ${a}–${b}. Meetings belong in dead hours.`,
+        line:(p,t,a,b,c)=>`${p} peak hours left to ${t}. 1 peak hour today (${a}–${b}) costs ${c} action hours later.`,
+        ask:(a,b)=>`Which one hour inside ${a}–${b} is too expensive this week for what you are doing with it?`,
+        sleepL:"Sleep", dutyL:"Duty", distL:"Distract", peakL:"Peak", restL:"Rest"
       }
-      if (target <= age) {
-        err.textContent = "Zielalter muss über dem Alter liegen.";
-        return;
-      }
-      if (sleep + duty + distract > 24) {
-        err.textContent = "Schlaf + Pflicht + Ablenkung darf 24h nicht überschreiten.";
-        return;
-      }
-      if (peakH > Math.max(0, 24 - sleep - duty - distract)) {
-        err.textContent = "Peak-Stunden können nicht über der Restzeit liegen.";
-        return;
-      }
-      const years = target - age;
-      const days = years * 365.25;
-      const residual = Math.max(0, 24 - sleep - duty - distract);
-      const peakUse = Math.min(peakH, residual);
-      const normalH = Math.max(0, residual - peakUse);
-      const rate = ratePct / 100;
-      const compound = Math.pow(1 + rate, years);
-      const calHours = days * 24;
-      const awakeHours = days * (24 - sleep);
-      const netHours = days * residual;
-      const peakHours = days * peakUse;
-      const weighted = days * (peakUse * mult + normalH);
-      const wastePeakNow = compound;
-      const wasteDeadNow = compound / mult;
-      const scrollYear = distract * 365.25 * compound / Math.max(mult, 1);
-      $("out").innerHTML = `
-        <div>
-          <div class="kpi hit">${fmt(peakHours)}</div>
-          <small>Peak-Stunden bis ${target}</small>
+    };
+    const fmt = n => Math.round(n).toLocaleString(lang==="de"?"de-CH":"en-US");
+    const f1 = n => n.toLocaleString(lang==="de"?"de-CH":"en-US",{maximumFractionDigits:1});
+    function t(){return T[lang]}
+    function setLang(l){
+      lang=l; document.documentElement.lang=l;
+      $("btn-de").className=l==="de"?"on":""; $("btn-en").className=l==="en"?"on":"";
+      const x=t();
+      $("t-sub").textContent=x.sub; if($("t-pitch")) $("t-pitch").textContent=x.pitch;
+      $("l-age").textContent=x.age; $("l-target").textContent=x.target;
+      $("l-sleep").textContent=x.sleep; $("l-duty").textContent=x.duty;
+      $("l-distract").textContent=x.distract; $("l-peak").textContent=x.peak;
+      $("l-pfrom").textContent=x.pfrom; $("l-pto").textContent=x.pto;
+      $("l-mult").textContent=x.mult; $("l-rate").textContent=x.rate;
+      $("b-go").textContent=x.go; $("b-copy").textContent=x.copy;
+      $("p30").textContent=x.p30; $("p40").textContent=x.p40; $("p50").textContent=x.p50;
+      $("t-hint").textContent=x.hint; $("h-how").textContent=x.how; $("t-foot").textContent=x.foot;
+      $("how-list").innerHTML=x.howL.map(s=>`<li>${s}</li>`).join("");
+      try{localStorage.setItem("nw-lang",l)}catch(e){}
+      calc();
+    }
+    function load(){try{const d=JSON.parse(localStorage.getItem("nw-v11")||"null");if(!d)return;KEYS.forEach(k=>{if(d[k]!=null)$(k).value=d[k]})}catch(e){}}
+    function save(){const d={};KEYS.forEach(k=>d[k]=$(k).value);try{localStorage.setItem("nw-v11",JSON.stringify(d))}catch(e){}}
+    function preset(age){$("age").value=age;$("target").value=80;calc()}
+    function hoursBetween(a,b){const[ah,am]=a.split(":").map(Number);const[bh,bm]=b.split(":").map(Number);let m=(bh*60+bm)-(ah*60+am);if(m<=0)m+=1440;return m/60}
+    function pack(sleep,duty,distract,peakH,mult,years){
+      const residual=Math.max(0,24-sleep-duty-distract);
+      const peakUse=Math.min(peakH,residual);
+      const normalH=Math.max(0,residual-peakUse);
+      const days=years*365.25, compound=Math.pow(1+$("rate").value/100,years);
+      return {residual,peakUse,normalH,days,compound,
+        peakHours:days*peakUse, weighted:days*(peakUse*mult+normalH),
+        scroll:distract*365.25*compound/Math.max(mult,1)};
+    }
+    function calc(){
+      const x=t();
+      const age=+$("age").value,target=+$("target").value,sleep=+$("sleep").value,duty=+$("duty").value;
+      const distract=+$("distract").value,peakH=+$("peak").value,mult=+$("mult").value,ratePct=+$("rate").value;
+      const pfrom=$("pfrom").value,pto=$("pto").value,err=$("err");err.textContent="";
+      if([age,target,sleep,duty,distract,peakH,mult,ratePct].some(v=>Number.isNaN(v))){err.textContent=x.errNum;return}
+      if(target<=age){err.textContent=x.errAge;return}
+      if(sleep+duty+distract>24){err.textContent=x.err24;return}
+      if(peakH>Math.max(0,24-sleep-duty-distract)){err.textContent=x.errPeak;return}
+      save();
+      const years=target-age;
+      const a=pack(sleep,duty,distract,peakH,mult,years);
+      const cut=Math.min(1,distract);
+      const b=pack(sleep,duty,distract-cut,peakH+cut,mult,years);
+      const windowH=hoursBetween(pfrom,pto);
+      const wastePeakNow=a.compound, wasteDeadNow=a.compound/Math.max(mult,1);
+      const peakShare=a.days*(24-sleep)>0?(a.peakHours/(a.days*(24-sleep)))*100:0;
+      const line=x.line(fmt(a.peakHours),target,pfrom,pto,f1(wastePeakNow));
+      const guard = duty>0 ? `<div class="guard">${x.guard(pfrom,pto)}</div>` : "";
+      const mis = Math.abs(windowH-peakH)>0.26 ? `<p class="note warn">${x.mismatch(f1(windowH),f1(peakH))}</p>` : "";
+      $("out").innerHTML=`
+        <div class="kpi hit">${fmt(a.peakHours)}</div>
+        <div class="note" style="margin-top:0">${x.peakUntil(target)}</div>
+        <div class="kpi" style="margin-top:10px">${fmt(a.weighted)}</div>
+        <div class="note" style="margin-top:0">${x.weighted(f1(mult))}</div>
+        <div class="bar">
+          <span style="width:${sleep/24*100}%;background:#3a4454"></span>
+          <span style="width:${duty/24*100}%;background:#5b6574"></span>
+          <span style="width:${distract/24*100}%;background:#ef6a6a"></span>
+          <span style="width:${a.peakUse/24*100}%;background:#3dd68c"></span>
+          <span style="width:${a.normalH/24*100}%;background:#e0b03a"></span>
         </div>
-        <div>
-          <div class="kpi">${fmt(weighted)}</div>
-          <small>Gewichtete Wirkstunden (Peak × ${f1(mult)})</small>
+        <div class="legend">
+          <span><i style="background:#3a4454"></i>${x.sleepL} ${f1(sleep)}</span>
+          <span><i style="background:#5b6574"></i>${x.dutyL} ${f1(duty)}</span>
+          <span><i style="background:#ef6a6a"></i>${x.distL} ${f1(distract)}</span>
+          <span><i style="background:#3dd68c"></i>${x.peakL} ${f1(a.peakUse)}</span>
+          <span><i style="background:#e0b03a"></i>${x.restL} ${f1(a.normalH)}</span>
         </div>
+        ${guard}${mis}
         <table>
-          <tr><td>Jahre übrig</td><td>${f1(years)}</td></tr>
-          <tr><td>Kalenderstunden</td><td>${fmt(calHours)}</td></tr>
-          <tr><td>Wachstunden</td><td>${fmt(awakeHours)}</td></tr>
-          <tr><td>Nutzbar / Tag</td><td>${f1(residual)} h</td></tr>
-          <tr><td>Netto-Stunden gesamt</td><td>${fmt(netHours)}</td></tr>
+          <tr><td> </td><td>${x.now}</td><td>${x.alt}</td></tr>
+          <tr><td>${x.peakUntil(target)}</td><td>${fmt(a.peakHours)}</td><td class="hit">${fmt(b.peakHours)}</td></tr>
+          <tr><td>${x.wshort}</td><td>${fmt(a.weighted)}</td><td class="hit">${fmt(b.weighted)}</td></tr>
+          <tr><td>${x.scroll}</td><td class="warn">${fmt(a.scroll)}</td><td>${fmt(b.scroll)}</td></tr>
         </table>
         <table>
-          <tr><td>1 Peak-Stunde heute → später</td><td class="warn">${f1(wastePeakNow)} Wirkstunden</td></tr>
-          <tr><td>1 tote Stunde heute → später</td><td>${f1(wasteDeadNow)} Wirkstunden</td></tr>
-          <tr><td>Ablenkung/Jahr, verzinst</td><td class="warn">${fmt(scrollYear)} Peak-Äquivalent</td></tr>
+          <tr><td>${x.years}</td><td>${f1(years)}</td></tr>
+          <tr><td>${x.cal}</td><td>${fmt(a.days*24)}</td></tr>
+          <tr><td>${x.awake}</td><td>${fmt(a.days*(24-sleep))}</td></tr>
+          <tr><td>${x.share}</td><td>${f1(peakShare)} %</td></tr>
+          <tr><td>${x.window}</td><td>${pfrom}–${pto} (${f1(windowH)} h)</td></tr>
+          <tr><td>${x.usable}</td><td>${f1(a.residual)} h</td></tr>
+          <tr><td>${x.split}</td><td>${f1(a.peakUse)} h / ${f1(a.normalH)} h</td></tr>
+          <tr><td>${x.net}</td><td>${fmt(a.days*a.residual)}</td></tr>
+          <tr><td>${x.onePeak}</td><td class="warn">${f1(wastePeakNow)}</td></tr>
+          <tr><td>${x.oneDead}</td><td>${f1(wasteDeadNow)}</td></tr>
         </table>
-        <p class="note">Peak-Fenster teuer halten. Tote Stunden dürfen Meetings fressen.</p>
-      `;
-      lastText =
-`Netto-Wirkzeit v1.0.0 (2026-09-28)
-Alter ${age} → Ziel ${target}
-Peak-Stunden übrig: ${fmt(peakHours)}
-Gewichtete Wirkstunden: ${fmt(weighted)}
-1 Peak-Stunde heute kostet später ${f1(wastePeakNow)} Wirkstunden
-Ablenkung/Jahr verzinst: ${fmt(scrollYear)} Peak-Äquivalent
-© Roman Paly`;
+        <p class="note">${line}</p>
+        <div class="ask">${x.ask(pfrom,pto)}</div>`;
+      lastText=`Netto-Wirkzeit v1.1.0\n${line}\n${x.alt}: ${fmt(b.peakHours)} / ${fmt(a.peakHours)}\nhttps://nettowirkzeit.com\n© Roman Paly`;
     }
-    async function copyResult() {
-      if (!lastText) calc();
-      try {
-        await navigator.clipboard.writeText(lastText);
-        $("err").textContent = "Ergebnis kopiert.";
-      } catch {
-        $("err").textContent = "Kopieren blockiert — Text manuell markieren.";
-      }
-    }
-    calc();
+    async function copyResult(){if(!lastText)calc();try{await navigator.clipboard.writeText(lastText);$("err").textContent=t().copied}catch{$("err").textContent=t().blocked}}
+    load();
+    KEYS.forEach(k=>{const el=$(k); if(el) el.addEventListener("input",calc)});
+    setLang((()=>{try{return localStorage.getItem("nw-lang")||"de"}catch(e){return "de"}})());
   </script>
 </body>
 </html>
